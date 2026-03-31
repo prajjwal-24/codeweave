@@ -17,17 +17,23 @@ export const handler = async (event) => {
     let result;
     switch (action) {
       case 'initialize':
-        result = await contextManager.initializeConversation(
-          params.initialQuery,
-          params.limit
-        );
+        const convId = params.conversationId || `conv_${Date.now()}`;
+        await contextManager.createConversation(convId, params.initialQuery);
+        const initContext = await contextManager.retrieveRelevantContext(params.initialQuery, { limit: params.limit || 10 });
+        result = { conversationId: convId, context: initContext };
         break;
 
       case 'update':
-        result = await contextManager.addCodeEntity(
-          params.conversationId,
-          params.entity
-        );
+        if (params.entity) {
+          result = await contextManager.indexCodeEntity(params.entity);
+        } else if (params.message) {
+          result = await contextManager.addMessage(
+            params.conversationId,
+            params.message.id || `msg_${Date.now()}`,
+            params.message.role,
+            params.message.content
+          );
+        }
         break;
 
       case 'retrieve':
